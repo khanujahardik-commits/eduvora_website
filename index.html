@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Eduvora OS | Audio Pro</title>
+    <style>
+        /* Forces the browser's native audio player to use Dark Mode */
+        :root {
+            color-scheme: dark;
+            --bg: #030303;
+            --panel: rgba(15, 15, 18, 0.98);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #ffffff;
+            --text-dim: #666;
+            --accent: #00d2ff;
+            --accent-glow: rgba(0, 210, 255, 0.3);
+        }
+
+        * { box-sizing: border-box; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); font-family: 'Inter', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow-x: hidden; }
+
+        .dashboard {
+            position: relative;
+            width: 98vw; height: 96vh; max-width: 1800px;
+            display: flex; flex-direction: row; 
+            background: var(--border); border-radius: 40px; overflow: hidden;
+            border: 1px solid var(--border); box-shadow: 0 50px 150px rgba(0,0,0,1);
+        }
+
+        @media (max-width: 1100px) {
+            .dashboard { flex-direction: column; height: auto; min-height: 100vh; border-radius: 0; width: 100vw; }
+            body { overflow-y: auto; align-items: flex-start; }
+            .col { border-right: none; border-bottom: 1px solid var(--border); width: 100%; min-height: auto; }
+            .main-engine { order: -1; padding: 40px 10px; } 
+            .footer-credit { position: relative !important; bottom: 0 !important; padding: 40px 0 !important; }
+        }
+
+        .col { background: var(--panel); display: flex; flex-direction: column; overflow: hidden; flex: 1; border-right: 1px solid var(--border); }
+        .main-engine { flex: 1.5; justify-content: center; align-items: center; padding: 60px 20px; position: relative; }
+        .scroll { overflow-y: auto; padding: 35px; flex-grow: 1; scrollbar-width: none; }
+        .scroll::-webkit-scrollbar { display: none; }
+        
+        h3 { font-size: 0.65rem; font-weight: 900; letter-spacing: 0.3em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 25px; border-left: 3px solid var(--accent); padding-left: 12px; }
+
+        /* NATIVE AUDIO PLAYER (FIXED COLORS) */
+        .audio-card { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 24px; padding: 25px 20px; margin-bottom: 30px; text-align: center; }
+        .audio-wave { display: flex; justify-content: center; align-items: center; gap: 5px; height: 30px; margin-bottom: 20px; }
+        .wave-bar { width: 4px; height: 10px; background: var(--text-dim); border-radius: 10px; transition: 0.2s; }
+        
+        .playing .wave-bar { background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); animation: pulse 0.6s infinite alternate; }
+        .playing .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+        .playing .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+        .playing .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+        .playing .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+        @keyframes pulse { from { height: 8px; } to { height: 28px; } }
+        
+        /* Removed filters, added simple styling */
+        audio { width: 100%; height: 40px; outline: none; border-radius: 8px; }
+        
+        /* WISDOM SECTION */
+        .quote-box { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 24px; padding: 25px; margin-bottom: 30px; position: relative; min-height: 130px; display: flex; flex-direction: column; justify-content: center; }
+        #quote-text { font-style: italic; font-size: 0.95rem; line-height: 1.6; margin-bottom: 10px; display: block; transition: opacity 0.3s; }
+        #quote-author { font-size: 0.7rem; font-weight: 900; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; }
+        .refresh-btn { position: absolute; top: 15px; right: 15px; cursor: pointer; color: var(--text-dim); font-size: 1.2rem; transition: transform 0.3s; }
+        .refresh-btn:hover { color: var(--accent); transform: rotate(180deg); }
+
+        /* TIMER AREA */
+        .timer-wrap { position: relative; width: 100%; max-width: 450px; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; }
+        svg { position: absolute; transform: rotate(-90deg); width: 100%; height: 100%; }
+        .ring-bg { stroke: var(--border); stroke-width: 1; fill: none; }
+        .ring-progress { stroke: var(--accent); stroke-width: 5; fill: none; stroke-dasharray: 1131; stroke-dashoffset: 1131; stroke-linecap: round; filter: drop-shadow(0 0 15px var(--accent-glow)); will-change: stroke-dashoffset; }
+        
+        .time-display { font-size: clamp(5.5rem, 18vw, 9.5rem); font-weight: 100; letter-spacing: -5px; line-height: 1; margin-bottom: 10px; }
+        #status { font-size: 0.6rem; letter-spacing: 6px; font-weight: 900; color: var(--text-dim); text-transform: uppercase; }
+
+        .btn-main { border-radius: 100px; padding: 20px 50px; font-weight: 900; letter-spacing: 4px; font-size: 0.75rem; border: 2px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; text-transform: uppercase; margin-top: 35px; }
+        .btn-main:hover { background: var(--accent); color: #000; box-shadow: 0 0 30px var(--accent-glow); }
+        .btn-main:active { transform: scale(0.95); }
+
+        /* TASKS */
+        #tIn { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: #fff; padding: 18px; border-radius: 15px; margin-bottom: 15px; outline: none; font-size: 1rem; border-left: 3px solid var(--accent); }
+        .task-row { padding: 16px; border-radius: 15px; background: rgba(255,255,255,0.03); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid transparent; }
+        .task-row:hover { border-color: var(--border); background: rgba(255,255,255,0.05); }
+        .task-row.done { opacity: 0.3; text-decoration: line-through; }
+        .del-btn { color: #ff2d55; font-weight: 900; padding: 5px 10px; opacity: 0.6; }
+        .del-btn:hover { opacity: 1; transform: scale(1.2); }
+        
+        /* CALC */
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
+        .c-btn { background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: white; padding: 15px; border-radius: 12px; cursor: pointer; font-weight: 600; }
+        .c-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--accent); }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <div class="col">
+        <div class="scroll">
+            
+            <h3>Focus Audio</h3>
+            <div class="audio-card" id="audioContainer">
+                <div class="audio-wave">
+                    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                </div>
+                <audio id="bgAudio" controls loop>
+                    <source src="https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+
+            <h3>Engine Settings</h3>
+            <div style="display:flex; gap:12px; margin-bottom:30px;">
+                <div style="flex:1">
+                    <label style="font-size: 0.5rem; color: var(--accent); display: block; margin-bottom: 5px; font-weight: 900;">FOCUS</label>
+                    <input type="number" id="fI" value="25" style="width:100%; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:white; padding:15px; border-radius:12px; text-align:center;" onchange="saveSets()">
+                </div>
+                <div style="flex:1">
+                    <label style="font-size: 0.5rem; color: var(--accent); display: block; margin-bottom: 5px; font-weight: 900;">BREAK</label>
+                    <input type="number" id="bI" value="5" style="width:100%; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:white; padding:15px; border-radius:12px; text-align:center;" onchange="saveSets()">
+                </div>
+            </div>
+
+            <h3>Calculator</h3>
+            <div id="cDisp" style="text-align:right; font-size:1.5rem; margin-bottom:15px; min-height:30px; color:var(--accent); font-weight:200;"></div>
+            <div class="calc-grid">
+                <button class="c-btn" onclick="cIn('7')">7</button><button class="c-btn" onclick="cIn('8')">8</button><button class="c-btn" onclick="cIn('9')">9</button><button class="c-btn" onclick="cIn('/')">/</button>
+                <button class="c-btn" onclick="cIn('4')">4</button><button class="c-btn" onclick="cIn('5')">5</button><button class="c-btn" onclick="cIn('6')">6</button><button class="c-btn" onclick="cIn('*')">×</button>
+                <button class="c-btn" onclick="cIn('1')">1</button><button class="c-btn" onclick="cIn('2')">2</button><button class="c-btn" onclick="cIn('3')">3</button><button class="c-btn" onclick="cIn('-')">-</button>
+                <button class="c-btn" onclick="cClear()" style="color:#ff2d55">C</button><button class="c-btn" onclick="cIn('0')">0</button><button class="c-btn" onclick="cSolve()" style="background:var(--accent); color:black">=</button><button class="c-btn" onclick="cIn('+')">+</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col main-engine">
+        <div class="timer-wrap">
+            <svg viewBox="0 0 380 380">
+                <circle class="ring-bg" cx="190" cy="190" r="180"></circle>
+                <circle id="progress" class="ring-progress" cx="190" cy="190" r="180"></circle>
+            </svg>
+            <div style="text-align:center; z-index:10;">
+                <div class="time-display" id="display">25:00</div>
+                <div id="status">ENGINE: STANDBY</div>
+            </div>
+        </div>
+        <button class="btn-main" id="sBtn" onclick="toggleTimer()">Ignite Focus</button>
+    </div>
+
+    <div class="col">
+        <div class="scroll">
+            <h3>Wisdom</h3>
+            <div class="quote-box">
+                <div class="refresh-btn" onclick="newQuote()">↺</div>
+                <span id="quote-text">"The way to get started is to quit talking and begin doing."</span>
+                <div id="quote-author">Walt Disney</div>
+            </div>
+
+            <h3>Objectives</h3>
+            <input type="text" id="tIn" placeholder="+ Add a new objective..." onkeypress="if(event.key==='Enter')addTask()">
+            <div id="taskList"></div>
+        </div>
+    </div>
+
+    <div class="footer-credit" style="position: absolute; bottom: 20px; width: 100%; text-align: center; font-size: 0.6rem; letter-spacing: 4px; color: var(--text-dim); text-transform: uppercase; pointer-events: none; z-index: 100;">
+        Made by <span style="color: var(--accent); font-weight: 900;">Hardik Khanuja</span>
+    </div>
+
+</div>
+
+<script>
+    let state = { active: false, end: null, rem: 1500, tot: 1500, isBreak: false };
+    let cVal = "";
+
+    /* --- AUDIO WAVE SYNC --- */
+    const audioEl = document.getElementById('bgAudio');
+    const waveContainer = document.getElementById('audioContainer');
+    audioEl.onplay = () => waveContainer.classList.add('playing');
+    audioEl.onpause = () => waveContainer.classList.remove('playing');
+
+    /* --- QUOTES ENGINE --- */
+    const quotes = [
+        {t: "The obstacle is the path.", a: "Zen Proverb"},
+        {t: "Amor Fati — Love your fate.", a: "Marcus Aurelius"},
+        {t: "Focus on being productive instead of busy.", a: "Tim Ferriss"},
+        {t: "Stay hungry, stay foolish.", a: "Steve Jobs"},
+        {t: "Work hard in silence, let your success be your noise.", a: "Frank Ocean"},
+        {t: "Simplicity is the ultimate sophistication.", a: "Leonardo Da Vinci"}
+    ];
+
+    function newQuote() {
+        const txt = document.getElementById('quote-text');
+        txt.style.opacity = 0;
+        setTimeout(() => {
+            const q = quotes[Math.floor(Math.random() * quotes.length)];
+            txt.innerText = `"${q.t}"`;
+            document.getElementById('quote-author').innerText = q.a;
+            txt.style.opacity = 1;
+        }, 300);
+    }
+
+    /* --- CALCULATOR --- */
+    function cIn(v) { cVal += v; document.getElementById('cDisp').innerText = cVal; }
+    function cClear() { cVal = ""; document.getElementById('cDisp').innerText = ""; }
+    function cSolve() { try { cVal = eval(cVal).toString(); document.getElementById('cDisp').innerText = cVal; } catch { cClear(); } }
+
+    /* --- TIMER ENGINE --- */
+    function upd() {
+        if (!state.active) return;
+        const s = Math.max(0, Math.ceil((state.end - Date.now()) / 1000));
+        document.getElementById('display').innerText = `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
+        document.getElementById('progress').style.strokeDashoffset = 1131 - (1131 * (s / state.tot));
+        
+        if (s <= 0) {
+            state.active = false; state.isBreak = !state.isBreak;
+            saveSets();
+            alert(state.isBreak ? "Mission Complete. Take a break." : "Break Over. Ready to focus?");
+        }
+        requestAnimationFrame(upd);
+    }
+
+    function toggleTimer() {
+        if (state.active) {
+            state.rem = Math.max(0, Math.ceil((state.end - Date.now()) / 1000));
+            state.active = false;
+        } else {
+            state.end = Date.now() + (state.rem * 1000);
+            state.active = true;
+            requestAnimationFrame(upd);
+        }
+        document.getElementById('sBtn').innerText = state.active ? "Pause Engine" : "Ignite Focus";
+        document.getElementById('status').innerText = state.active ? (state.isBreak ? "BREAK IN PROGRESS" : "FOCUS ACTIVE") : "ENGINE: STANDBY";
+    }
+
+    function saveSets() {
+        const f = document.getElementById('fI').value * 60;
+        const b = document.getElementById('bI').value * 60;
+        state.tot = state.isBreak ? b : f;
+        state.rem = state.tot;
+        document.getElementById('display').innerText = `${Math.floor(state.rem/60)}:00`;
+        document.getElementById('progress').style.strokeDashoffset = 1131;
+    }
+
+    /* --- TASK MANAGER --- */
+    function addTask() {
+        const v = document.getElementById('tIn').value; if(!v) return;
+        let tk = JSON.parse(localStorage.getItem('ev_tasks_final') || '[]');
+        tk.push({ txt: v, done: false });
+        localStorage.setItem('ev_tasks_final', JSON.stringify(tk));
+        document.getElementById('tIn').value = ''; renderTasks();
+    }
+
+    function toggleTask(i) {
+        let tk = JSON.parse(localStorage.getItem('ev_tasks_final'));
+        tk[i].done = !tk[i].done;
+        localStorage.setItem('ev_tasks_final', JSON.stringify(tk)); renderTasks();
+    }
+
+    function deleteTask(e, i) {
+        e.stopPropagation();
+        let tk = JSON.parse(localStorage.getItem('ev_tasks_final'));
+        tk.splice(i, 1);
+        localStorage.setItem('ev_tasks_final', JSON.stringify(tk)); renderTasks();
+    }
+
+    function renderTasks() {
+        const tk = JSON.parse(localStorage.getItem('ev_tasks_final') || '[]');
+        document.getElementById('taskList').innerHTML = tk.map((x, i) => `
+            <div class="task-row ${x.done ? 'done' : ''}" onclick="toggleTask(${i})">
+                <span>${x.txt}</span>
+                <span class="del-btn" onclick="deleteTask(event, ${i})">✕</span>
+            </div>
+        `).join('');
+    }
+
+    window.onload = () => { renderTasks(); newQuote(); saveSets(); };
+</script>
+</body>
+</html>
